@@ -20,9 +20,9 @@ jobs:
 
       - name: Run generator
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
-          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          OPENAI_API_KEY: ${{ secrets.API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.BASE_URL }}
+          OPENAI_MODEL: ${{ secrets.MODEL }}
         run: python scripts/generate.py
 
 
