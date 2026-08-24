@@ -1,0 +1,34 @@
+name: daily-ai-notes
+
+on:
+  schedule:
+    - cron: '0 0 * * *'    # UTC 0:00 = 北京时间 8:00
+  workflow_dispatch:       # 允许手动触发，方便你测试
+
+permissions:
+  contents: write          # 需要写权限才能提交
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run generator
+        run: python scripts/generate.py
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes today"
+          else
+            git commit -m "daily note: $(date -u +%F)"
+            git push
+          fi
