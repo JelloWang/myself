@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""daily-ai-notes v2 — 抓 AI 新闻 + AI 点评，生成每日日报。"""
+"""daily-ai-notes v3 — 抓国内 AI 新闻 + AI 点评，生成中文日报。"""
 
 import datetime
 import json
@@ -11,16 +11,24 @@ from xml.etree import ElementTree
 NOTES_DIR = Path(__file__).resolve().parent.parent / "notes"
 
 RSS_FEEDS = [
-    "https://hnrss.org/newest?q=AI&count=10",
-    "https://hnrss.org/newest?q=LLM&count=8",
-    "https://hnrss.org/newest?q=OpenAI&count=6",
+    "https://www.infoq.cn/feed",
+    "https://www.tmtpost.com/rss.xml",
+    "https://sspai.com/feed",
 ]
+
+AI_KEYWORDS = [
+    "AI", "人工智能", "大模型", "LLM", "智能体", "Agent", "GPT",
+    "DeepSeek", "OpenAI", "机器学习", "深度学习", "神经网络",
+    "生成式", "Claude", "Gemini", "算力", "英伟达", "大语言",
+    "多模态", "AIGC", "Copilot", "推理", "训练",
+]
+
 MAX_ITEMS = 12
 
 
 def fetch_rss(url):
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "daily-ai-notes/1.0"})
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=20) as resp:
             data = resp.read()
         root = ElementTree.fromstring(data)
@@ -37,10 +45,16 @@ def fetch_rss(url):
         return []
 
 
+def is_ai_related(title):
+    return any(kw.lower() in title.lower() for kw in AI_KEYWORDS)
+
+
 def collect_news():
     seen, news = set(), []
     for feed in RSS_FEEDS:
         for title, link in fetch_rss(feed):
+            if not is_ai_related(title):
+                continue
             k = title.lower()
             if k in seen:
                 continue
@@ -58,7 +72,7 @@ def ai_summarize(news):
     news_text = "\n".join(f"- {t} ({l})" for t, l in news)
     prompt = (
         "你是一位专注 AI 应用落地的技术博主，正在成长为 Forward Deployed Engineer（FDE）。"
-        "下面是今天的一批 AI 新闻标题。请你：\n"
+        "下面是今天国内的一批 AI 相关新闻标题。请你：\n"
         "1. 挑出最值得关注的 3-5 条\n"
         "2. 每条用一两句话点评它对 AI 应用落地/企业实践的意义（有你自己的观点）\n"
         "3. 最后写一段 100 字左右的『今日思考』，站在 FDE 视角谈趋势\n"
@@ -89,7 +103,7 @@ def build_markdown(news, ai_content):
     if ai_content:
         lines += [ai_content, "", "---", "", "## 📰 今日新闻原文链接", ""]
     else:
-        lines += ["> 今日 AI 领域值得关注的新闻（自动抓取）", ""]
+        lines += ["> 今日国内 AI 领域值得关注的新闻（自动抓取）", ""]
     for title, link in news:
         lines.append(f"- [{title}]({link})" if link else f"- {title}")
     lines += ["", "---", "*自动生成 · 一个未来 FDE 的 AI 应用日报*"]
@@ -100,9 +114,9 @@ def main():
     NOTES_DIR.mkdir(parents=True, exist_ok=True)
     news = collect_news()
     if not news:
-        print("[error] 没抓到新闻，跳过")
+        print("[error] 今天没抓到 AI 相关新闻，跳过")
         return
-    print(f"抓到 {len(news)} 条新闻")
+    print(f"抓到 {len(news)} 条 AI 相关新闻")
     ai_content = ai_summarize(news)
     md = build_markdown(news, ai_content)
     date = datetime.date.today().isoformat()
